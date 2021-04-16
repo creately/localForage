@@ -1083,7 +1083,7 @@ function dropInstance(options, callback) {
 var asyncStorage = {
     _driver: 'asyncStorage',
     _initStorage: _initStorage,
-    _support: isIndexedDBValid(),
+    _support: isIndexedDBValid,
     iterate: iterate,
     getItem: getItem,
     setItem: setItem,

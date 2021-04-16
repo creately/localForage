@@ -372,13 +372,45 @@ function getIDB() {
 
 var idb = getIDB();
 
+var TEST_DB_NAME = 'localforage.testdb';
+
+// Firefox Private mode doesn't support IndexedDB, however the only way to detect this
+// is by trying to open a database and checking for errors.
+function testIndexDBAvailability() {
+    return new Promise(function (resolve) {
+        if (!idb || !idb.open) {
+            resolve(false);
+        }
+
+        var request = idb.open(TEST_DB_NAME);
+
+        request.onsuccess = function () {
+            return resolve(true);
+        };
+
+        request.onerror = function (event) {
+            console.warn('IndexedDB unavailable -', request.error);
+            return resolve(false);
+        };
+    });
+}
+
 function isIndexedDBValid() {
     try {
         // Initialize IndexedDB; fall back to vendor-prefixed versions
         // if needed.
-        if (!idb || !idb.open) {
+
+        return testIndexDBAvailability().then(function (isAvailable) {
+            // deleteTestDB();
+            return Promise.resolve(isAvailable);
+        });
+
+        var isIndexedDBAvailable = testIndexDBAvailability();
+
+        if (!isIndexedDBAvailable) {
             return false;
         }
+
         // We mimic PouchDB here;
         //
         // We test for openDatabase because IE Mobile identifies itself
@@ -1417,7 +1449,7 @@ function dropInstance(options, callback) {
 var asyncStorage = {
     _driver: 'asyncStorage',
     _initStorage: _initStorage,
-    _support: isIndexedDBValid(),
+    _support: isIndexedDBValid,
     iterate: iterate,
     getItem: getItem,
     setItem: setItem,
@@ -2638,6 +2670,7 @@ var LocalForage = function () {
                     setDriverSupport(true);
                 }
             } catch (e) {
+                console.log('### Rejecting with error', e);
                 reject(e);
             }
         });
@@ -2664,8 +2697,8 @@ var LocalForage = function () {
     };
 
     LocalForage.prototype.ready = function ready(callback) {
+        console.log('### ready', callback);
         var self = this;
-
         var promise = self._driverSet.then(function () {
             if (self._ready === null) {
                 self._ready = self._initDriver();
@@ -2700,6 +2733,7 @@ var LocalForage = function () {
         }
 
         function initDriver(supportedDrivers) {
+            console.log('### initDriver', supportedDrivers);
             return function () {
                 var currentDriverIndex = 0;
 
